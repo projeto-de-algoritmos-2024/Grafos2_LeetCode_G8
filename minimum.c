@@ -6,46 +6,45 @@
 
 typedef struct {
     int x, y;
-} square;
+} vec2;
 
-typedef struct {
+typedef struct node {
     int dist;
-    square from;
-    square to;
+    struct node *from;
+    vec2 pos;
 } node;
 
 typedef struct {
     int N;
     int len;
-    node *data;
+    node **data;
 } Heap;
 
-// ----
 // ---- FORWARD DECLARATIONS ----
 
 Heap *create_heap(int N);
-static inline int compare(node a, node b);
+static inline int compare(node *a, node *b);
 static inline int get_parent(int i);
 static inline int left_child(int i);
 static inline int right_child(int i);
 static inline void swap(Heap *h, int i, int j);
 void swim(Heap *h, int i);
 void sink(Heap *h, int i);
-node pop(Heap *h);
+node *pop(Heap *h);
 void fix(Heap *h, node *n);
 
-// -----
+// Heap functions
 
 Heap *create_heap(int N) {
     Heap *h = malloc(sizeof *h);
     h->N = N;
     h->len = 0;
-    h->data = malloc(N*sizeof(node));
+    h->data = malloc(N*sizeof(node *));
     return h;
 }
 
-static inline int compare(node a, node b) {
-    return (a.dist > b.dist) - (a.dist < b.dist);
+static inline int compare(node *a, node *b) {
+    return (a->dist > b->dist) - (a->dist < b->dist);
 }
 
 static inline int get_parent(int i) {
@@ -61,7 +60,7 @@ static inline int right_child(int i) {
 }
 
 static inline void swap(Heap *h, int i, int j) {
-    node temp = h->data[i];
+    node *temp = h->data[i];
     h->data[i] = h->data[j];
     h->data[j] = temp;
 }
@@ -95,7 +94,7 @@ void sink(Heap *h, int i) {
   }
 }
 
-void push(Heap *h, node n) {
+void push(Heap *h, node *n) {
   if (h->len >= h->N) {
     perror("Heap overflow\n");
     abort();
@@ -104,8 +103,12 @@ void push(Heap *h, node n) {
   swim(h, h->len-1);
 }
 
-node pop(Heap *h) {
-  node n = h->data[0];
+node *pop(Heap *h) {
+  if (h->len == 0) {
+    perror("Heap underflow\n");
+    abort();
+  }
+  node *n = h->data[0];
   swap(h, 0, --h->len);
   sink(h, 0);
 
@@ -113,7 +116,19 @@ node pop(Heap *h) {
 }
 
 void fix(Heap *h, node *n) {
-  int index = n - h->data;
+  int index = -1;
+  for (int i=0; i<h->len; i++) {
+    if (n == h->data[i]) 
+    {
+      index = i;
+      break;
+    }
+  }
+  if (index == -1) {
+    perror("Node not found in heap\n");
+    abort();
+  }
+
   if (compare(h->data[index], h->data[get_parent(index)]) < 0) 
     swim(h, index);
   else 
