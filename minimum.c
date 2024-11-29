@@ -138,31 +138,72 @@ void fix(Heap *h, node *n) {
 // ---- MAIN ----
 
 
-node ***nodes;
+node **nodes;
 Heap *heap;
 int max_x;
 int max_y;
+
+vec2 neighbors[5];
+vec2 *get_neighbors(node *n) {
+    neighbors[4] = (vec2){-1, -1};
+    
+    int len = 0;
+    if (n->pos.x - 1 >= 0) 
+        neighbors[len++] = (vec2){n->pos.x - 1, n->pos.y};
+    if (n->pos.x + 1 < max_x) 
+        neighbors[len++] = (vec2){n->pos.x + 1, n->pos.y};
+    
+    if (n->pos.y - 1 >= 0) 
+        neighbors[len++] = (vec2){n->pos.x, n->pos.y - 1};
+    
+    if (n->pos.y + 1 < max_y) 
+        neighbors[len++] = (vec2){n->pos.x, n->pos.y + 1};
+    
+    return neighbors;
+}
 
 int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
   max_x = gridSize;
   max_y = *gridColSize;
 
   heap = create_heap(gridSize * *gridColSize);
-  nodes = malloc(gridSize * sizeof(node **));
+  nodes = malloc(gridSize * sizeof(node *));
   for (int i=0; i<gridSize; i++) {
-    nodes[i] = calloc(*gridColSize, sizeof(node *));
+    nodes[i] = calloc(*gridColSize, sizeof(node));
     for (int j=0; j<*gridColSize; j++) {
-      nodes[i][j] = malloc(sizeof(node));
-      nodes[i][j]->dist = INT_MAX;
-      nodes[i][j]->from = (square){-1, -1};
-      nodes[i][j]->to = (square){i, j};
+      nodes[i][j].dist = INT_MAX;
+      nodes[i][j].from = NULL;
+      nodes[i][j].pos = (vec2){i, j};
+      if (!(i == 0 && j == 0))
+        push(heap, &nodes[i][j]);
     }
   }
 
-  node *current = nodes[0][0];
-  while (nodes[max_x][max_y]->dist == INT_MAX) {
+  nodes[0][0].dist = 0;
+  node *current = &nodes[0][0];
+  while (heap->len != 0) {
 
+    vec2 *neighbors = get_neighbors(current);
+    for (int i=0; neighbors[i].x != -1 && neighbors[i].y != -1; i++) {
+
+      vec2 pos = neighbors[i];
+      if (pos.x == 0 && pos.y == 0)
+        continue;
+
+      node *friend_node = &nodes[pos.x][pos.y];
+
+      int total_path_dist = grid[pos.x][pos.y] + current->dist;
+
+      if (friend_node->dist == INT_MAX || friend_node->dist > total_path_dist) {
+        friend_node->dist = total_path_dist;
+        friend_node->from = current;
+        fix(heap, friend_node);
+      }
+
+    }
+    current = pop(heap);
+    free(neighbors);
   }
 
+  return nodes[max_x-1][max_y-1].dist;
 }
-
