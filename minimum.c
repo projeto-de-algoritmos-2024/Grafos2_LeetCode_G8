@@ -11,6 +11,7 @@ typedef struct {
 typedef struct node {
     int dist;
     struct node *from;
+    int heap_index;
     vec2 pos;
 } node;
 
@@ -30,6 +31,7 @@ static inline int right_child(int i);
 static inline void swap(Heap *h, int i, int j);
 void swim(Heap *h, int i);
 void sink(Heap *h, int i);
+void push(Heap *h, node *n);
 node *pop(Heap *h);
 void fix(Heap *h, node *n);
 
@@ -63,15 +65,18 @@ static inline void swap(Heap *h, int i, int j) {
     node *temp = h->data[i];
     h->data[i] = h->data[j];
     h->data[j] = temp;
+
+    h->data[i]->heap_index = i;
+    h->data[j]->heap_index = j;
 }
 
 void swim(Heap *h, int i) {
-    int current = i;
-    while (current > 0 && compare(h->data[current], h->data[get_parent(current)]) < 0) {
-        int parent = get_parent(current);
-        swap(h, current, parent);
-        current = parent;
-    }
+  int current = i;
+  while (current > 0 && compare(h->data[current], h->data[get_parent(current)]) < 0) {
+      int parent = get_parent(current);
+      swap(h, current, parent);
+      current = parent;
+  }
 }
 
 void sink(Heap *h, int i) {
@@ -100,6 +105,7 @@ void push(Heap *h, node *n) {
     abort();
   }
   h->data[h->len++] = n;
+  n->heap_index = h->len-1;
   swim(h, h->len-1);
 }
 
@@ -112,27 +118,21 @@ node *pop(Heap *h) {
   swap(h, 0, --h->len);
   sink(h, 0);
 
+  n->heap_index = -1;
   return n;
 }
 
 void fix(Heap *h, node *n) {
-  int index = -1;
-  for (int i=0; i<h->len; i++) {
-    if (n == h->data[i]) 
-    {
-      index = i;
-      break;
-    }
-  }
+  int index = n->heap_index;
   if (index == -1) {
     perror("Node not found in heap\n");
     abort();
   }
 
-  if (compare(h->data[index], h->data[get_parent(index)]) < 0) 
+  if (index > 0 && compare(h->data[index], h->data[get_parent(index)]) < 0)
     swim(h, index);
   else 
-    sink(h, index);
+    sink(h, index);    
 }
 
 // ---- MAIN ----
@@ -144,22 +144,20 @@ int max_x;
 int max_y;
 
 vec2 neighbors[5];
-vec2 *get_neighbors(node *n) {
-    neighbors[4] = (vec2){-1, -1};
+void set_neighbors(node *n) {
+    for (int i=0; i<5; i++) {
+      neighbors[i] = (vec2) {-1, -1};
+    }
     
     int len = 0;
     if (n->pos.x - 1 >= 0) 
         neighbors[len++] = (vec2){n->pos.x - 1, n->pos.y};
     if (n->pos.x + 1 < max_x) 
         neighbors[len++] = (vec2){n->pos.x + 1, n->pos.y};
-    
     if (n->pos.y - 1 >= 0) 
         neighbors[len++] = (vec2){n->pos.x, n->pos.y - 1};
-    
     if (n->pos.y + 1 < max_y) 
         neighbors[len++] = (vec2){n->pos.x, n->pos.y + 1};
-    
-    return neighbors;
 }
 
 int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
@@ -171,11 +169,13 @@ int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
   for (int i=0; i<gridSize; i++) {
     nodes[i] = calloc(*gridColSize, sizeof(node));
     for (int j=0; j<*gridColSize; j++) {
-      nodes[i][j].dist = INT_MAX;
-      nodes[i][j].from = NULL;
-      nodes[i][j].pos = (vec2){i, j};
+      node *current = &nodes[i][j];
+      current->dist = INT_MAX;
+      current->from = NULL;
+      current->pos = (vec2){i, j};
+      current->heap_index = -1;
       if (!(i == 0 && j == 0))
-        push(heap, &nodes[i][j]);
+        push(heap, current);
     }
   }
 
@@ -183,7 +183,7 @@ int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
   node *current = &nodes[0][0];
   while (heap->len != 0) {
 
-    vec2 *neighbors = get_neighbors(current);
+    set_neighbors(current);
     for (int i=0; neighbors[i].x != -1 && neighbors[i].y != -1; i++) {
 
       vec2 pos = neighbors[i];
@@ -191,10 +191,9 @@ int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
         continue;
 
       node *friend_node = &nodes[pos.x][pos.y];
-
       int total_path_dist = grid[pos.x][pos.y] + current->dist;
 
-      if (friend_node->dist == INT_MAX || friend_node->dist > total_path_dist) {
+      if (friend_node->dist > total_path_dist) {
         friend_node->dist = total_path_dist;
         friend_node->from = current;
         fix(heap, friend_node);
@@ -202,7 +201,6 @@ int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
 
     }
     current = pop(heap);
-    free(neighbors);
   }
 
   return nodes[max_x-1][max_y-1].dist;
