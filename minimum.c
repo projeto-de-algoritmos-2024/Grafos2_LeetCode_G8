@@ -35,7 +35,7 @@ void push(Heap *h, node *n);
 node *pop(Heap *h);
 void fix(Heap *h, node *n);
 
-// Heap functions
+// ---- HEAP FUNCTIONS ----
 
 Heap *create_heap(int N) {
     Heap *h = malloc(sizeof *h);
@@ -136,7 +136,6 @@ void fix(Heap *h, node *n) {
 }
 
 // ---- MAIN ----
-
 
 node **nodes;
 Heap *heap;
