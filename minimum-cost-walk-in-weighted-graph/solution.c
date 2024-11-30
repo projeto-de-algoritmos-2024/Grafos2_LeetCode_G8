@@ -115,3 +115,41 @@ int dijkstra(AdjList* graph, int n, int start, int end) {
     free(costs);
     return -1;
 }
+
+int* minimumCost(int n, int** edges, int edgesSize, int* edgesColSize, int** query, int querySize, int* queryColSize, int* returnSize) {
+    // ----Initialize graph----
+    AdjList* graph = malloc(n * sizeof(AdjList));
+    for (int i = 0; i < n; i++) {
+        graph[i].edges = malloc(2 * sizeof(Edge));
+        graph[i].size = 0;
+        graph[i].capacity = 2;
+    }
+
+    // ----Add edges to the graph----
+    for (int i = 0; i < edgesSize; i++) {
+        int u = edges[i][0];
+        int v = edges[i][1];
+        int w = edges[i][2];
+        addEdge(graph, u, v, w);
+        addEdge(graph, v, u, w);
+    }
+
+    // ----Allocate results array----
+    int* results = malloc(querySize * sizeof(int));
+    *returnSize = querySize;
+
+    // ----Process each query----
+    for (int i = 0; i < querySize; i++) {
+        int start = query[i][0];
+        int end = query[i][1];
+        results[i] = dijkstra(graph, n, start, end);
+    }
+
+    // ----Free graph memory----
+    for (int i = 0; i < n; i++) {
+        free(graph[i].edges);
+    }
+    free(graph);
+
+    return results;
+}
