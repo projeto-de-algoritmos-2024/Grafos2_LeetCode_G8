@@ -77,3 +77,41 @@ HeapNode pop(PriorityQueue* pq) {
     }
     return top;
 }
+
+int dijkstra(AdjList* graph, int n, int start, int end) {
+    int* costs = malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) costs[i] = INT_MAX;
+
+    PriorityQueue* pq = createPQ(n);
+    push(pq, start, INT_MAX);
+    costs[start] = INT_MAX;
+
+    while (!isEmpty(pq)) {
+        HeapNode current = pop(pq);
+        int node = current.node;
+        int cost = current.cost;
+
+        if (node == end) {
+            freePQ(pq);
+            free(costs);
+            return cost;
+        }
+
+        if (cost < costs[node]) continue;
+
+        for (int i = 0; i < graph[node].size; i++) {
+            int neighbor = graph[node].edges[i].node;
+            int weight = graph[node].edges[i].weight;
+            int new_cost = cost & weight;
+
+            if (new_cost > costs[neighbor]) {
+                costs[neighbor] = new_cost;
+                push(pq, neighbor, new_cost);
+            }
+        }
+    }
+
+    freePQ(pq);
+    free(costs);
+    return -1;
+}
