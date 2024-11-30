@@ -4,15 +4,10 @@
 
 // ---- STRUCTS ----
 
-typedef struct {
-    int x, y;
-} vec2;
-
 typedef struct node {
-    int dist;
-    struct node *from;
+    int smallest_dist;
     int heap_index;
-    vec2 pos;
+    int id;
 } node;
 
 typedef struct {
@@ -46,7 +41,7 @@ Heap *create_heap(int N) {
 }
 
 static inline int compare(node *a, node *b) {
-    return (a->dist > b->dist) - (a->dist < b->dist);
+    return (a->smallest_dist > b->smallest_dist) - (a->smallest_dist < b->smallest_dist);
 }
 
 static inline int get_parent(int i) {
@@ -137,70 +132,68 @@ void fix(Heap *h, node *n) {
 
 // ---- MAIN ----
 
-node **nodes;
+node *node_table;
 Heap *heap;
-int max_x;
-int max_y;
 
-vec2 neighbors[5];
-void set_neighbors(node *n) {
-    for (int i=0; i<5; i++) {
-      neighbors[i] = (vec2) {-1, -1};
-    }
-    
-    int len = 0;
-    if (n->pos.x - 1 >= 0) 
-        neighbors[len++] = (vec2){n->pos.x - 1, n->pos.y};
-    if (n->pos.x + 1 < max_x) 
-        neighbors[len++] = (vec2){n->pos.x + 1, n->pos.y};
-    if (n->pos.y - 1 >= 0) 
-        neighbors[len++] = (vec2){n->pos.x, n->pos.y - 1};
-    if (n->pos.y + 1 < max_y) 
-        neighbors[len++] = (vec2){n->pos.x, n->pos.y + 1};
+typedef struct {
+  int n;
+  int **adj_matrix;
+} graph;
+
+static inline int get_dist(int *point_a, int *point_b) {
+  return abs(point_a[0]-point_b[0]) + abs(point_a[1]-point_b[1]);
 }
 
-int minimumObstacles(int** grid, int gridSize, int* gridColSize) {
-  max_x = gridSize;
-  max_y = *gridColSize;
-
-  heap = create_heap(gridSize * *gridColSize);
-  nodes = malloc(gridSize * sizeof(node *));
-  for (int i=0; i<gridSize; i++) {
-    nodes[i] = calloc(*gridColSize, sizeof(node));
-    for (int j=0; j<*gridColSize; j++) {
-      node *current = &nodes[i][j];
-      current->dist = INT_MAX;
-      current->from = NULL;
-      current->pos = (vec2){i, j};
-      current->heap_index = -1;
-      if (!(i == 0 && j == 0))
-        push(heap, current);
+graph *build_graph(int** points, int pointsSize) {
+  graph *g = malloc(sizeof *g);
+  g->n = pointsSize;
+  g->adj_matrix = malloc(pointsSize * sizeof(int *));
+  for (int x=0; x<g->n; x++) {
+    g->adj_matrix[x] = malloc(pointsSize * sizeof(int));
+    for (int y=0; y<g->n; y++) {
+      g->adj_matrix[x][y] = get_dist(points[x], points[y]);
     }
   }
 
-  nodes[0][0].dist = 0;
-  node *current = &nodes[0][0];
+  return g;
+}
+
+int minCostConnectPoints(int** points, int pointsSize, int* pointsColSize) {
+  graph *g = build_graph(points, pointsSize);
+
+  heap = create_heap(g->n);
+  node_table = malloc(g->n * sizeof(node));
+
+  for (int i=0; i<pointsSize; i++) {
+    node *current = &node_table[i];
+    current->smallest_dist = i==0 ? 0 : INT_MAX;
+    current->id = i;
+    current->heap_index = -1;
+    if (i!=0)
+      push(heap, current);
+  }
+
+  node *current = &node_table[0];
   while (heap->len != 0) {
-
-    set_neighbors(current);
-    for (int i=0; neighbors[i].x != -1 && neighbors[i].y != -1; i++) {
-
-      vec2 pos = neighbors[i];
-      if (pos.x == 0 && pos.y == 0)
+    for (int j=0; j<g->n; j++) {
+      node *neighbor = &node_table[j];
+      if (j==current->id || neighbor->heap_index == -1)
         continue;
 
-      node *friend_node = &nodes[pos.x][pos.y];
-      int total_path_dist = grid[pos.x][pos.y] + current->dist;
-
-      if (friend_node->dist > total_path_dist) {
-        friend_node->dist = total_path_dist;
-        friend_node->from = current;
-        fix(heap, friend_node);
+      int distance = g->adj_matrix[current->id][j];
+      if (distance < neighbor->smallest_dist) {
+        neighbor->smallest_dist = distance;
+        fix(heap, neighbor);
       }
 
     }
     current = pop(heap);
   }
 
-  return nodes[max_x-1][max_y-1].dist;
+  int total = 0;
+  for (int i=0; i<g->n; i++) {
+    total += node_table[i].smallest_dist; 
+  }
+
+  return total;
 }
