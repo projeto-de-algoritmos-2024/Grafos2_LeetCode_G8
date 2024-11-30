@@ -28,3 +28,10 @@ typedef struct {
     int capacity;
 } PriorityQueue;
 
+void addEdge(AdjList* graph, int u, int v, int w) {
+    if (graph[u].size == graph[u].capacity) {
+        graph[u].capacity *= 2;
+        graph[u].edges = realloc(graph[u].edges, graph[u].capacity * sizeof(Edge));
+    }
+    graph[u].edges[graph[u].size++] = (Edge){v, w};
+}
