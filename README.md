@@ -27,7 +27,9 @@ Este repositório contém questões resolvidas, sobre o conteúdo de Grafos 2, d
 ## Instalação 
 **Linguagem**: C
 
+## Entrega
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ShWEQOgEIQY?si=FswgmCEnqZ5aAsev" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 
 
